@@ -1,0 +1,11 @@
+name: Run WebInspect locally
+on: workflow_dispatch
+
+jobs:
+  wi:
+    runs-on: [self-hosted, windows, x64, webinspect]
+    steps:
+      - name: WebInspect help
+        shell: powershell
+        run: |
+          & "wi" -?

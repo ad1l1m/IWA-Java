@@ -20,7 +20,9 @@ jobs:
       #   run: mvn -Pwar clean package
       - name: run application
         shell: powershell
-        run: mvn spring-boot:run; ping http://localhost:8888
+        run: Start-Process -FilePath "mvn spring-boot:run" -WindowStyle Hidden -NoNewWindow
+      - name: UseBasicParsing
+        run: ping localhost:8888
       # - name: Wait for app to be ready
       #   shell: pwsh
       #   run: |

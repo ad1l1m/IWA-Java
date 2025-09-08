@@ -11,6 +11,7 @@ concurrency:
 jobs:
   wi:
     runs-on: [self-hosted, windows, x64, webinspect]
+    environment: SSC_TOKEN
     timeout-minutes: 180
     steps:
       - name: Wait for app (HTTP 200 on /)
@@ -45,3 +46,40 @@ jobs:
         shell: powershell
         run: |
           if ($env:APP_PID) { Stop-Process -Id $env:APP_PID -Force -ErrorAction SilentlyContinue }
+      - name: commands for upload
+        env: 
+            SSC_URL:  http://192.168.64.9:8080/ssc
+            SSC_TOKEN: ${{ secrets.SSC_TOKEN }}   # не храни токен в явном виде
+            APP_VERSION_ID: '17'
+            FPR: C:\Users\Administrator\all_results\testing.fpr
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $headers = @{ Authorization = "FortifyToken $env:SSC_TOKEN"; Accept = "application/json" }
+          $body    = '{"fileTokenType":"UPLOAD"}'
+      
+          # 1) получить file token
+          $uploadToken = (Invoke-RestMethod -Method Post `
+            -Uri "$env:SSC_URL/api/v1/fileTokens" `
+            -Headers $headers -ContentType "application/json" -Body $body).data.token
+      
+          if (-not $uploadToken) { throw "Не получили uploadToken" }
+      
+          # 2) загрузить FPR
+          & $env:SystemRoot\System32\curl.exe -sS -X POST `
+            "$env:SSC_URL/upload/resultFileUpload.html?mat=$uploadToken" `
+            -F "entityId=$env:APP_VERSION_ID" `
+            -F "file=@$env:FPR"
+            
+          # $ErrorActionPreference = 'Stop'
+          # $headers = @{ Authorization = "FortifyToken $env:SSC_TOKEN"; Accept = "application/json" }
+          # $body    = '{"fileTokenType":"UPLOAD"}'
+      
+          # # 1) получить file token
+          # $uploadToken = (Invoke-RestMethod -Method Post `
+          #   -Uri "$env:SSC_URL/api/v1/fileTokens" `
+          #   -Headers $headers -ContentType "application/json" -Body $body).data.token
+          # C:\Windows\System32\curl.exe -X POST ` 
+          # "$ssc/upload/resultFileUpload.html?mat=$uploadToken" ` 
+          # -F "entityId=$env:APP_VERSION_ID"
+          # -F "file=@$env:FPR"

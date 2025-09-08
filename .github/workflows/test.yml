@@ -7,8 +7,8 @@ env:
 
 jobs:
   wi:
-    runs-on: [self-hosted, windows, x64, webinspect1]
-    timeout-minutes: 30
+    runs-on: [self-hosted, windows, x64, webinspect]
+    timeout-minutes: 180
     steps:
       - name: Wait for app (HTTP 200 on /)
         shell: powershell
@@ -35,7 +35,7 @@ jobs:
 
       - name: Scan with WebInspect
         shell: powershell
-        run: wi.exe -u "${{ env.TARGET }}" -ps 1 -ep "$env:RUNNER_TEMP\testing.fpr"
+        run: wi -u "${{ env.TARGET }}" -ps 1 -ep "$env:RUNNER_TEMP\testing.fpr"
 
       - name: Stop app
         if: always()

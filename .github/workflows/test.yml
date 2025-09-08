@@ -3,7 +3,7 @@ on: [push, workflow_dispatch]
 
 env:
   IWA_DIR:  C:\Users\Administrator\IWA-Java
-  TARGET:   http://localhost:8888
+  TARGET:   http://192.168.64.16:8888
 
 jobs:
   wi:
@@ -30,7 +30,7 @@ jobs:
       - name: HTTP status check
         uses: lakuapik/gh-actions-http-status@v1
         with:
-          sites: '["http://localhost:8888"]'
+          sites: '["http://192.168.64.16:8888"]'
           expected: '[200]'
 
       - name: Scan with WebInspect

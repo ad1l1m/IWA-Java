@@ -21,7 +21,8 @@ jobs:
       # - name: mvn -Pwar clean package
       #   run: mvn -Pwar clean package
       - name: run application
-        run: mvn spring-boot:run && ping http://localhost:8888
+        shell: powershell
+        run: mvn spring-boot:run; ping http://localhost:8888
       # - name: Wait for app to be ready
       #   shell: pwsh
       #   run: |

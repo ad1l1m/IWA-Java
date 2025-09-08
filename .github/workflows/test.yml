@@ -9,6 +9,8 @@ jobs:
   run_application:
     runs-on: [self-hosted, windows, x64, webinspect]
     steps:
+      - name: terminate the app
+        run: Kill-PortProcess -Port 8888
       - name: run_app
         run: mvn spring-boot:run
 

@@ -27,11 +27,11 @@ jobs:
           }
 
       # (опционально) дополнительная проверка сторонним action
-      - name: HTTP status check
-        uses: lakuapik/gh-actions-http-status@v1
-        with:
-          sites: '["http://192.168.64.16:8888"]'
-          expected: '[200]'
+      # - name: HTTP status check
+      #   uses: lakuapik/gh-actions-http-status@v1
+      #   with:
+      #     sites: '["http://192.168.64.16:8888"]'
+      #     expected: '[200]'
 
       - name: Scan with WebInspect
         shell: powershell

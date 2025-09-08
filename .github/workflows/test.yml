@@ -11,7 +11,9 @@ jobs:
           & "wi" -?
       - name: run application
         shell: powershell
-        run: cd C:\Users\Administrator\IWA-Java> & git pull & mvn spring-boot:run
+        run: cd C:\Users\Administrator\IWA-Java> 
+             git pull  
+             mvn spring-boot:run
       - name: scanning application
         shell: powershell
         run: wi.exe -u http://192.168.64.16:8888 -ps 1 -ep ./testing.fpr

@@ -20,7 +20,21 @@ jobs:
       #   run: mvn -Pwar clean package
       - name: run application
         shell: powershell
-        run: Start-Process -FilePath "mvn spring-boot:run" -WindowStyle Hidden -NoNewWindow
+        run: mvn spring-boot:run
+      - name: Wait for app to be ready
+        shell: pwsh
+        run: |
+          $u = "${{ env.TARGET }}"   # если есть /actuator/health — лучше проверять его
+          $deadline = (Get-Date).AddMinutes(3)
+          while ((Get-Date) -lt $deadline) {
+            try {
+              Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 $u | Out-Null
+              Write-Host "App is up at $u"
+              exit 0
+            } catch { Start-Sleep 2 }
+          }
+          Get-Content "$env:RUNNER_TEMP\app.err.log" -Tail 200 -ErrorAction SilentlyContinue
+          throw "Service is not responding at $u"
       - name: UseBasicParsing
         run: ping localhost:8888
       # - name: Wait for app to be ready

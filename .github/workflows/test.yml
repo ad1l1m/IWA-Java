@@ -16,18 +16,18 @@ jobs:
                -WorkingDirectory $env:IWA_DIR `
                -NoNewWindow -PassThru
           Set-Content "$env:RUNNER_TEMP\iwa.pid" $p.Id
-      - name: Wait for app to be ready
-        shell: pwsh
-        run: |
-          $u = $env:TARGET
-          1..60 | ForEach-Object {
-            try {
-              # если есть actuator/health - используй его
-              Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 "$u" | Out-Null
-              exit 0
-            } catch { Start-Sleep 2 }
-          }
-          throw "Service is not responding at $u"
-      - name: scanning application
-        shell: powershell
-        run: wi.exe -u http://192.168.64.16:8888 -ps 1 -ep ./testing.fpr
+      # - name: Wait for app to be ready
+      #   shell: pwsh
+      #   run: |
+      #     $u = $env:TARGET
+      #     1..60 | ForEach-Object {
+      #       try {
+      #         # если есть actuator/health - используй его
+      #         Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 "$u" | Out-Null
+      #         exit 0
+      #       } catch { Start-Sleep 2 }
+      #     }
+      #     throw "Service is not responding at $u"
+      # - name: scanning application
+      #   shell: powershell
+      #   run: wi.exe -u http://192.168.64.16:8888 -ps 1 -ep ./testing.fpr

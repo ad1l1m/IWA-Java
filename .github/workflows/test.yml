@@ -14,6 +14,8 @@ jobs:
         run: Kill-PortProcess -Port 8888
       - name: run_app
         uses: mvn spring-boot:run
+      - name: Check http status code of production site
+        uses: lakuapik/gh-actions-http-status@v1
         with:
           sites: '["http://localhost:8888"]'
           expected: '[200]'

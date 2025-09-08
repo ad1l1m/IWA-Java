@@ -1,0 +1,21 @@
+name: Run WebInspect locally
+on: [push, workflow_dispatch]
+
+env:
+  IWA_DIR:  C:\Users\Administrator\IWA-Java
+  TARGET:   http://localhost:8888
+
+jobs:
+  wi:
+    runs-on: [self-hosted, windows, x64, webinspect]
+    timeout-minutes: 30
+    steps:
+      - name: Free port 8888 if busy
+        shell: powershell
+        run: Kill-PortProcess -Port 8888
+
+      - name: Update sources
+        shell: powershell
+        run: git pull
+      - name: mvn spring-boot:run
+      

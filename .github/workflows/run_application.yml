@@ -6,7 +6,7 @@ env:
   TARGET:   http://localhost:8888
 
 jobs:
-  wi11:
+  wi112:
     runs-on: [self-hosted, windows, x64, webinspect]
     timeout-minutes: 180
     steps:

@@ -4,16 +4,23 @@ on: [push, workflow_dispatch]
 jobs:
   wi:
     runs-on: [self-hosted, windows, x64, webinspect]
+    env:
+      IWA_DIR:  C:\Users\Administrator\IWA-Java
+      TARGET:   http://localhost:8888   
     steps:
       - name: WebInspect help
         shell: powershell
         run: |
           & "wi" -?
       - name: run application
-        shell: powershell
-        run: cd C:\Users\Administrator\IWA-Java> |
-            git pull |
-            mvn spring-boot:run
+        run: |
+          git -C $env:IWA_DIR pull
+          $p = Start-Process -FilePath "mvn" `
+               -ArgumentList "spring-boot:run" `
+               -WorkingDirectory $env:IWA_DIR `
+               -NoNewWindow -PassThru
+          Set-Content "$env:RUNNER_TEMP\iwa.pid" $p.Id
+             
       - name: scanning application
         shell: powershell
         run: wi.exe -u http://192.168.64.16:8888 -ps 1 -ep ./testing.fpr

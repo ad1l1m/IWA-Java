@@ -28,8 +28,9 @@ jobs:
           -RedirectStandardError  "$env:TEMP\mvn-iwa.err" `
           -WindowStyle Hidden `
           -PassThru
-
-
+      - name: Start app in backgrounq
+        shell: powershell
+        run: $proc
       - name: Wait for app (HTTP 200 on /)
         shell: powershell
         run: |

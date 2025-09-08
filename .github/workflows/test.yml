@@ -21,12 +21,14 @@ jobs:
       - name: Start app in background
         shell: powershell
         working-directory: ${{ env.IWA_DIR }}
-        run: $proc = Start-Process mvn 'spring-boot:run' `
-              -WorkingDirectory 'C:\Users\Administrator\IWA-Java' `
-              -WindowStyle Hidden `
-              -RedirectStandardOutput "$env:TEMP\mvn-iwa.out" `
-              -RedirectStandardError  "$env:TEMP\mvn-iwa.err" `
-              -PassThru
+        run: $proc = Start-Process -FilePath 'cmd.exe' `
+          -ArgumentList '/c','mvn -DskipTests spring-boot:run' `
+          -WorkingDirectory 'C:\Users\Administrator\IWA-Java' `
+          -RedirectStandardOutput "$env:TEMP\mvn-iwa.out" `
+          -RedirectStandardError  "$env:TEMP\mvn-iwa.err" `
+          -WindowStyle Hidden `
+          -PassThru
+
 
       - name: Wait for app (HTTP 200 on /)
         shell: powershell

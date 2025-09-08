@@ -1,4 +1,4 @@
-name: Run WebInspect locally1
+name: Run IWA-Java application
 on: [push, workflow_dispatch]
 
 env:

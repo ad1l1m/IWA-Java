@@ -8,12 +8,11 @@ env:
 jobs:
   run_application:
     runs-on: [self-hosted, windows, x64, webinspect]
-    if: needs.build.outputs.commit_status == 'success'
     steps:
       - name: terminate the app
         run: Kill-PortProcess -Port 8888
       - name: run_app
-        uses: mvn spring-boot:run
+        run: mvn spring-boot:run
       - name: Check http status code of production site
         uses: lakuapik/gh-actions-http-status@v1
         with:

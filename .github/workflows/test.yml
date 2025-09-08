@@ -10,27 +10,6 @@ jobs:
     runs-on: [self-hosted, windows, x64, webinspect]
     timeout-minutes: 30
     steps:
-      - name: Free port 8888 if busy
-        shell: powershell
-        run: Kill-PortProcess -Port 8888
-
-      - name: Update sources
-        shell: powershell
-        run: git -C $env:IWA_DIR pull
-
-      - name: Start app in background
-        shell: powershell
-        working-directory: ${{ env.IWA_DIR }}
-        run: $proc = Start-Process -FilePath 'cmd.exe' `
-          -ArgumentList '/c','mvn -DskipTests spring-boot:run' `
-          -WorkingDirectory 'C:\Users\Administrator\IWA-Java' `
-          -RedirectStandardOutput "$env:TEMP\mvn-iwa.out" `
-          -RedirectStandardError  "$env:TEMP\mvn-iwa.err" `
-          -WindowStyle Hidden `
-          -PassThru
-      - name: Start app in backgrounq
-        shell: powershell
-        run: $proc
       - name: Wait for app (HTTP 200 on /)
         shell: powershell
         run: |

@@ -6,16 +6,15 @@ env:
   TARGET:   http://localhost:8888
 
 jobs:
-  wi:
+  wi11:
     runs-on: [self-hosted, windows, x64, webinspect]
     timeout-minutes: 180
     steps:
       - name: Free port 8888 if busy1
         shell: powershell
         run: Kill-PortProcess -Port 8888
-
       - name: Update sources
         shell: powershell
         run: git pull
       - name: mvn spring-boot:run
-      
+        run: mvn spring-boot:run

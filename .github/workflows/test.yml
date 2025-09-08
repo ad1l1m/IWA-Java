@@ -16,6 +16,8 @@ jobs:
                -WorkingDirectory $env:IWA_DIR `
                -NoNewWindow -PassThru
           Set-Content "$env:RUNNER_TEMP\iwa.pid" $p.Id
+  ping:
+    runs-on: [self-hosted, windows, x64, webinspect]
     steps:
       - name: ping 
         run: ping http://localhost:8888

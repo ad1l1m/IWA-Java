@@ -1,18 +1,19 @@
 name: Run WebInspect locally
 on: [push, workflow_dispatch]
 
+env:
+  IWA_DIR:  C:\Users\Administrator\IWA-Java
+  TARGET:   http://localhost:8888 
+
 jobs:
   run_application:
     runs-on: [self-hosted, windows, x64, webinspect]
-  steps:
-    - name: run_app
-      run: mvn spring-boot:run
+    steps:
+      - name: run_app
+        run: mvn spring-boot:run
 
   wi:
-    runs-on: [self-hosted, windows, x64, webinspect]
-    env:
-      IWA_DIR:  C:\Users\Administrator\IWA-Java
-      TARGET:   http://localhost:8888   
+    runs-on: [self-hosted, windows, x64, webinspect]  
     steps:
       - name: git pull
         shell: powershell

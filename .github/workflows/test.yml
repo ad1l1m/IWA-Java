@@ -11,17 +11,17 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Free port 8888 if busy
-        shell: pwsh
+        shell: powershell
         run: |
           $c = Get-NetTCPConnection -LocalPort 8888 -ErrorAction SilentlyContinue | Select-Object -First 1
           if ($c) { Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue }
 
       - name: Update sources
-        shell: pwsh
+        shell: powershell
         run: git -C $env:IWA_DIR pull
 
       - name: Start app in background
-        shell: pwsh
+        shell: powershell
         working-directory: ${{ env.IWA_DIR }}
         run: |
           $p = Start-Process -FilePath "cmd.exe" `
@@ -32,7 +32,7 @@ jobs:
           "APP_PID=$($p.Id)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Wait for app (HTTP 200 on /)
-        shell: pwsh
+        shell: powershell
         run: |
           $u = "${{ env.TARGET }}"
           $deadline = (Get-Date).AddMinutes(3)
@@ -55,11 +55,11 @@ jobs:
           expected: '[200]'
 
       - name: Scan with WebInspect
-        shell: pwsh
+        shell: powershell
         run: wi.exe -u "${{ env.TARGET }}" -ps 1 -ep "$env:RUNNER_TEMP\testing.fpr"
 
       - name: Stop app
         if: always()
-        shell: pwsh
+        shell: powershell
         run: |
           if ($env:APP_PID) { Stop-Process -Id $env:APP_PID -Force -ErrorAction SilentlyContinue }

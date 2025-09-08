@@ -38,7 +38,7 @@ jobs:
 
       - name: Scan with WebInspect
         shell: powershell
-        run: wi -u "${{ env.TARGET }}" -ps 1 -ep "$env:RUNNER_TEMP\testing.fpr"
+        run: wi -u "${{ env.TARGET }}" -ps 1 -ep "C:\Users\Administrator\all_results\testing.fpr"
 
       - name: Stop app
         if: always()

@@ -9,6 +9,7 @@ jobs:
       TARGET:   http://localhost:8888   
     steps:
       - name: run application
+        shell: powershell
         run: |
           git -C $env:IWA_DIR pull
           $p = Start-Process -FilePath "mvn" `
@@ -16,9 +17,8 @@ jobs:
                -WorkingDirectory $env:IWA_DIR `
                -NoNewWindow -PassThru
           Set-Content "$env:RUNNER_TEMP\iwa.pid" $p.Id
-      - name: Wait for the process to complete
-        run: wait
       - name: ping 
+        shell: powershell
         run: ping http://localhost:8888
       # - name: Wait for app to be ready
       #   shell: pwsh

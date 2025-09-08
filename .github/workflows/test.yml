@@ -1,55 +1,78 @@
-name: Run WebInspect locally
-on: [push, workflow_dispatch]
+- name: Start microservices in parallel, wait, scan, cleanup
+  shell: pwsh
+  run: |
+    # === НАСТРОЙКИ ===
+    $baseDir = "${{ env.IWA_DIR }}"             # корень с репозиториями
+    $repositories = @('svc-a','svc-b')          # папки с pom.xml
+    $urls = @{                                   # URL'ы для health-check'а
+      'svc-a' = 'http://localhost:8081/actuator/health'
+      'svc-b' = 'http://localhost:8082/actuator/health'
+    }
+    $scanTarget = 'http://localhost:8888'       # что сканировать WebInspect'ом
+    $timeoutMin = 5
 
-env:
-  IWA_DIR:  C:\Users\Administrator\IWA-Java
-  TARGET:   http://localhost:8888 
+    # === ЗАПУСК В ПАРАЛЛЕЛЬ ===
+    $jobs = @()
+    foreach ($repo in $repositories) {
+      $pom = Join-Path (Join-Path $baseDir $repo) 'pom.xml'  # было xml.pom — исправил
+      $out = Join-Path $env:RUNNER_TEMP "$repo.out.log"
+      $err = Join-Path $env:RUNNER_TEMP "$repo.err.log"
 
-jobs:
-  run_application:
-    runs-on: [self-hosted, windows, x64, webinspect]
-    steps:
-      - name: terminate the app
-        run: Kill-PortProcess -Port 8888
-      - name: run_app
-        run: mvn spring-boot:run
-      - name: Check http status code of production site
-        uses: lakuapik/gh-actions-http-status@v1
-        with:
-          sites: '["http://localhost:8888"]'
-          expected: '[200]'
+      $jobs += Start-Job -Name "run-$repo" -ScriptBlock {
+        param($pomPath, $repoName, $outLog, $errLog)
+        # Важно: -Dspring-boot.run.profiles без пробела
+        $args = @('--file', $pomPath, '-q', '-DskipTests',
+                  '-Dspring-boot.run.profiles=e2e', 'spring-boot:run')
 
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = 'mvn'
+        $psi.ArgumentList.AddRange($args)
+        $psi.RedirectStandardOutput = $true
+        $psi.RedirectStandardError = $true
+        $psi.UseShellExecute = $false
+        $psi.WorkingDirectory = Split-Path -Path $pomPath -Parent
 
-  wi:
-    runs-on: [self-hosted, windows, x64, webinspect]  
-    steps:
-      - name: git pull
-        shell: powershell
-        run: |
-          git -C $env:IWA_DIR pull
-      - name: localhost
-        run: ls
-      # - name: mvn clean package
-      #   run: mvn clean package
-      # - name: mvn -Pwar clean package
-      #   run: mvn -Pwar clean package
-      # - name: run application
-      #   shell: powershell
-      #   run: Start-Process -FilePath "mvn spring-boot:run" -WindowStyle Hidden -NoNewWindow
-      - name: UseBasicParsing
-        run: ping localhost:8888
-      # - name: Wait for app to be ready
-      #   shell: pwsh
-      #   run: |
-      #     $u = $env:TARGET
-      #     1..60 | ForEach-Object {
-      #       try {
-      #         # если есть actuator/health - используй его
-      #         Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 "$u" | Out-Null
-      #         exit 0
-      #       } catch { Start-Sleep 2 }
-      #     }
-      #     throw "Service is not responding at $u"
-      # - name: scanning application
-      #   shell: powershell
-      #   run: wi.exe -u http://192.168.64.16:8888 -ps 1 -ep ./testing.fpr
+        $p = New-Object System.Diagnostics.Process
+        $p.StartInfo = $psi
+        [void]$p.Start()
+        $p.StandardOutput.BaseStream.CopyTo([System.IO.File]::Open($outLog, [System.IO.FileMode]::Create))
+        $p.StandardError.BaseStream.CopyTo([System.IO.File]::Open($errLog, [System.IO.FileMode]::Create))
+        $p.WaitForExit()
+      } -ArgumentList $pom, $repo, $out, $err
+    }
+
+    # === ОЖИДАНИЕ ГОТОВНОСТИ СЕРВИСОВ ===
+    $deadline = (Get-Date).AddMinutes($timeoutMin)
+    foreach ($repo in $repositories) {
+      $u = $urls[$repo]
+      if (-not $u) { throw "Не задан URL для $repo в \$urls" }
+      Write-Host "Ждём $repo по $u ..."
+      while ((Get-Date) -lt $deadline) {
+        try {
+          Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 $u | Out-Null
+          Write-Host "$repo готов"
+          break
+        } catch {
+          Start-Sleep 2
+        }
+      }
+      if ((Get-Date) -ge $deadline) {
+        Get-Content (Join-Path $env:RUNNER_TEMP "$repo.err.log") -Tail 200 -ErrorAction SilentlyContinue
+        throw "Таймаут ожидания $repo ($u)"
+      }
+    }
+
+    # === ЗАПУСК СКАНА WEBINSPECT ===
+    wi.exe -u $scanTarget -ps 1 -ep (Join-Path $env:RUNNER_TEMP 'testing.fpr')
+
+    # === ОЧИСТКА ===
+    Write-Host "Останавливаем фоновые джобы..."
+    Get-Job | Stop-Job -Force -ErrorAction SilentlyContinue
+    Get-Job | Receive-Job -ErrorAction SilentlyContinue | Out-Null
+    Get-Job | Remove-Job -Force -ErrorAction SilentlyContinue
+
+    Write-Host "Хвосты логов:"
+    foreach ($repo in $repositories) {
+      Write-Host "===== $repo.err.log (tail) ====="
+      Get-Content (Join-Path $env:RUNNER_TEMP "$repo.err.log") -Tail 50 -ErrorAction SilentlyContinue
+    }

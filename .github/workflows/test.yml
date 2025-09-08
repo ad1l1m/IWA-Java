@@ -13,10 +13,10 @@ jobs:
       - name: terminate the app
         run: Kill-PortProcess -Port 8888
       - name: run_app
-        run: mvn spring-boot:run
+        uses: mvn spring-boot:run
         with:
-          sites: 'http://localhost:8888'
-          expected: '200'
+          sites: '["http://localhost:8888"]'
+          expected: '[200]'
 
 
   wi:

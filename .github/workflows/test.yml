@@ -16,6 +16,7 @@ jobs:
                -WorkingDirectory $env:IWA_DIR `
                -NoNewWindow -PassThru
           Set-Content "$env:RUNNER_TEMP\iwa.pid" $p.Id
+    steps:
       - name: ping 
         run: ping http://localhost:8888
       # - name: Wait for app to be ready

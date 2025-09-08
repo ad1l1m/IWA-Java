@@ -8,6 +8,8 @@ jobs:
       IWA_DIR:  C:\Users\Administrator\IWA-Java
       TARGET:   http://localhost:8888   
     steps:
+      - name: cd
+        run: cd C:\Users\Administrator\IWA-Java>
       - name: git pull
         shell: powershell
         run: |

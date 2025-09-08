@@ -10,7 +10,7 @@ concurrency:
   
 jobs:
   wi112:
-    runs-on: [self-hosted, windows, x64, webinspect]
+    runs-on: [self-hosted, windows, x64, webinspect1]
     timeout-minutes: 180
     steps:
       - name: Free port 8888 if busy1

@@ -23,13 +23,7 @@ jobs:
       - name: Start app in background
         shell: powershell
         working-directory: ${{ env.IWA_DIR }}
-        run: |
-          $p = Start-Process -FilePath "cmd.exe" `
-            -ArgumentList "/c","mvn -q -DskipTests spring-boot:run" `
-            -WindowStyle Hidden -PassThru `
-            -RedirectStandardOutput "$env:RUNNER_TEMP\app.out.log" `
-            -RedirectStandardError  "$env:RUNNER_TEMP\app.err.log"
-          "APP_PID=$($p.Id)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        run: mvn -q spring-boot:run
 
       - name: Wait for app (HTTP 200 on /)
         shell: powershell

@@ -16,15 +16,12 @@ jobs:
           git -C $env:IWA_DIR pull
       - name: localhost
         run: ls
-      - name: mvn clean package
-        run: mvn clean package
-      - name: mvn -Pwar clean package
-        run: mvn -Pwar clean package
+      # - name: mvn clean package
+      #   run: mvn clean package
+      # - name: mvn -Pwar clean package
+      #   run: mvn -Pwar clean package
       - name: run application
-        run: mvn spring-boot:run
-      - name: ping 
-        shell: powershell
-        run: ping http://localhost:8888
+        run: mvn spring-boot:run && ping http://localhost:8888
       # - name: Wait for app to be ready
       #   shell: pwsh
       #   run: |

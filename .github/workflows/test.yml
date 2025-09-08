@@ -12,9 +12,7 @@ jobs:
     steps:
       - name: Free port 8888 if busy
         shell: powershell
-        run: |
-          $c = Get-NetTCPConnection -LocalPort 8888 -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($c) { Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue }
+        run: Kill-PortProcess -Port 8888
 
       - name: Update sources
         shell: powershell
@@ -23,7 +21,12 @@ jobs:
       - name: Start app in background
         shell: powershell
         working-directory: ${{ env.IWA_DIR }}
-        run: mvn -q spring-boot:run
+        run: $proc = Start-Process mvn 'spring-boot:run' `
+              -WorkingDirectory 'C:\Users\Administrator\IWA-Java' `
+              -WindowStyle Hidden `
+              -RedirectStandardOutput "$env:TEMP\mvn-iwa.out" `
+              -RedirectStandardError  "$env:TEMP\mvn-iwa.err" `
+              -PassThru
 
       - name: Wait for app (HTTP 200 on /)
         shell: powershell

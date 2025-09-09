@@ -7,7 +7,7 @@ env:
   IWA_DIR:  C:\Users\Administrator\IWA-Java
   TARGET:   http://localhost:8888
 concurrency:
-  group: webinspect-winbox    # любое общее имя для этой машины/слота
+  group: webinspect-winbox  
   cancel-in-progress: true
   
 jobs:

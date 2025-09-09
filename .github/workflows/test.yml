@@ -1,6 +1,9 @@
 name: Run WebInspect locally
-on: [push, workflow_dispatch]
-
+# on: [push, workflow_dispatch]
+on:
+  push:
+    branches: [main]
+    
 env:
   IWA_DIR:  C:\Users\Administrator\IWA-Java
   TARGET:   http://192.168.64.9:8888

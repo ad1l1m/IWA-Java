@@ -1,25 +1,25 @@
-# name: Run IWA-Java application
-# on:
-#   push:
-#     branches: [main]
+name: Run IWA-Java application
+on:
+  push:
+    branches: [main]
 
-# env:
-#   IWA_DIR:  C:\Users\Administrator\IWA-Java
-#   TARGET:   http://localhost:8888
-# concurrency:
-#   group: webinspect-winbox  
-#   cancel-in-progress: true
+env:
+  IWA_DIR:  C:\Users\Administrator\IWA-Java
+  TARGET:   http://localhost:8888
+concurrency:
+  group: webinspect-winbox  
+  cancel-in-progress: true
   
-# jobs:
-#   wi112:
-#     runs-on: [self-hosted, windows, x64, webinspect1]
-#     timeout-minutes: 180
-#     steps:
-#       - name: Free port 8888 if busy1
-#         shell: powershell
-#         run: Kill-PortProcess -Port 8888
-#       - name: Update sources
-#         shell: powershell
-#         run: git pull
-#       - name: mvn spring-boot:run
-#         run: mvn spring-boot:run
+jobs:
+  wi112:
+    runs-on: [self-hosted, windows, x64, webinspect1]
+    timeout-minutes: 180
+    steps:
+      - name: Free port 8888 if busy1
+        shell: powershell
+        run: Kill-PortProcess -Port 8888
+      - name: Update sources
+        shell: powershell
+        run: git pull
+      - name: mvn spring-boot:run
+        run: mvn spring-boot:run

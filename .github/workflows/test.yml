@@ -125,3 +125,13 @@ jobs:
             Write-Host "No critical issues found. Build will pass."
             exit 0
           }
+      - name: Slack Notification
+        if: failure()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "🚨 Workflow *${{ github.workflow }}* failed on *${{ github.ref }}*.\nCheck run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

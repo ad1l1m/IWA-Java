@@ -15,6 +15,8 @@ jobs:
     runs-on: [self-hosted, windows, x64, webinspect1]
     timeout-minutes: 180
     steps:
+      - name: localhost
+        run: ls
       - name: Free port 8888 if busy1
         shell: powershell
         run: Kill-PortProcess -Port 8888

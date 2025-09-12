@@ -1,6 +1,5 @@
 name: Run WebInspect locally
-# on: [push, workflow_dispatch]
-# test1
+
 on:
   push:
     branches: [main]
@@ -18,61 +17,57 @@ jobs:
     environment: SSC_TOKEN
     timeout-minutes: 180
     steps:
-      - name: Wait for app (HTTP 200 on /)
-        shell: powershell
-        run: |
-          $u = "${{ env.TARGET }}"
-          $deadline = (Get-Date).AddMinutes(3)
-          while ((Get-Date) -lt $deadline) {
-            try {
-              Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 $u | Out-Null
-              Write-Host "App is up at $u"; break
-            } catch { Start-Sleep 2 }
-          }
-          if ((Get-Date) -ge $deadline) {
-            Get-Content "$env:RUNNER_TEMP\app.err.log" -Tail 200 -ErrorAction SilentlyContinue
-            throw "Service is not responding at $u"
-          }
+      # - name: Wait for app (HTTP 200 on /)
+      #   shell: powershell
+      #   run: |
+      #     $u = "${{ env.TARGET }}"
+      #     $deadline = (Get-Date).AddMinutes(3)
+      #     while ((Get-Date) -lt $deadline) {
+      #       try {
+      #         Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 $u | Out-Null
+      #         Write-Host "App is up at $u"; break
+      #       } catch { Start-Sleep 2 }
+      #     }
+      #     if ((Get-Date) -ge $deadline) {
+      #       Get-Content "$env:RUNNER_TEMP\app.err.log" -Tail 200 -ErrorAction SilentlyContinue
+      #       throw "Service is not responding at $u"
+      #     }
 
-      - name: HTTP status check
-        uses: lakuapik/gh-actions-http-status@v1
-        with:
-          sites: '["http://192.168.64.16:8888"]'
-          expected: '[200]'
 
-      - name: Scan with WebInspect
-        shell: powershell
-        run: wi -u "${{ env.TARGET }}" -ps 1 -ep "C:\Users\Administrator\all_results\testing.fpr"
 
-      - name: Stop app
-        if: always()
-        shell: powershell
-        run: |
-          if ($env:APP_PID) { Stop-Process -Id $env:APP_PID -Force -ErrorAction SilentlyContinue }
-      - name: commands for upload
-        env: 
-            SSC_URL:  http://192.168.64.9:8080/ssc
-            SSC_TOKEN: ${{ secrets.SSC_TOKEN }}   # не храни токен в явном виде
-            APP_VERSION_ID: '17'
-            FPR: C:\Users\Administrator\all_results\testing.fpr
-        shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $headers = @{ Authorization = "FortifyToken $env:SSC_TOKEN"; Accept = "application/json" }
-          $body    = '{"fileTokenType":"UPLOAD"}'
+      # - name: Scan with WebInspect
+      #   shell: powershell
+      #   run: wi -u "${{ env.TARGET }}" -ps 1 -ep "C:\Users\Administrator\all_results\testing.fpr"
+
+      # - name: Stop app
+      #   if: always()
+      #   shell: powershell
+      #   run: |
+      #     if ($env:APP_PID) { Stop-Process -Id $env:APP_PID -Force -ErrorAction SilentlyContinue }
+      # - name: commands for upload
+      #   env: 
+      #       SSC_URL:  http://192.168.64.9:8080/ssc
+      #       SSC_TOKEN: ${{ secrets.SSC_TOKEN }}   # не храни токен в явном виде
+      #       APP_VERSION_ID: '17'
+      #       FPR: C:\Users\Administrator\all_results\testing.fpr
+      #   shell: powershell
+      #   run: |
+      #     $ErrorActionPreference = 'Stop'
+      #     $headers = @{ Authorization = "FortifyToken $env:SSC_TOKEN"; Accept = "application/json" }
+      #     $body    = '{"fileTokenType":"UPLOAD"}'
       
-          # 1) получить file token
-          $uploadToken = (Invoke-RestMethod -Method Post `
-            -Uri "$env:SSC_URL/api/v1/fileTokens" `
-            -Headers $headers -ContentType "application/json" -Body $body).data.token
+      #     # 1) получить file token
+      #     $uploadToken = (Invoke-RestMethod -Method Post `
+      #       -Uri "$env:SSC_URL/api/v1/fileTokens" `
+      #       -Headers $headers -ContentType "application/json" -Body $body).data.token
       
-          if (-not $uploadToken) { throw "Не получили uploadToken" }
+      #     if (-not $uploadToken) { throw "Не получили uploadToken" }
       
-          # 2) загрузить FPR
-          & $env:SystemRoot\System32\curl.exe -sS -X POST `
-            "$env:SSC_URL/upload/resultFileUpload.html?mat=$uploadToken" `
-            -F "entityId=$env:APP_VERSION_ID" `
-            -F "file=@$env:FPR"
+      #     # 2) загрузить FPR
+      #     & $env:SystemRoot\System32\curl.exe -sS -X POST `
+      #       "$env:SSC_URL/upload/resultFileUpload.html?mat=$uploadToken" `
+      #       -F "entityId=$env:APP_VERSION_ID" `
+      #       -F "file=@$env:FPR"
             
       - name: Fail build on Critical issues in SSC
         if: always()
@@ -124,13 +119,19 @@ jobs:
             Write-Host "No critical issues found. Build will pass."
             exit 0
           }
-      # - name: Slack Notification
-      #   if: failure()
-      #   uses: slackapi/slack-github-action@v1.24.0
-      #   with:
-      #     payload: |
-      #       {
-      #         "text": "🚨 Workflow *${{ github.workflow }}* failed on *${{ github.ref }}*.\nCheck run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-      #       }'
-      #   env:
-      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Send email on failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "🚨 GitHub Actions Failed: ${{ github.workflow }}"
+          to: "adil.alimbaev.06@gmail.com"
+          from: "ci-bot@example.com"
+          body: |
+            Workflow: ${{ github.workflow }}
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref }}
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

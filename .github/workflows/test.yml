@@ -75,15 +75,57 @@ jobs:
             -F "entityId=$env:APP_VERSION_ID" `
             -F "file=@$env:FPR"
             
-          # $ErrorActionPreference = 'Stop'
-          # $headers = @{ Authorization = "FortifyToken $env:SSC_TOKEN"; Accept = "application/json" }
-          # $body    = '{"fileTokenType":"UPLOAD"}'
-      
-          # # 1) получить file token
-          # $uploadToken = (Invoke-RestMethod -Method Post `
-          #   -Uri "$env:SSC_URL/api/v1/fileTokens" `
-          #   -Headers $headers -ContentType "application/json" -Body $body).data.token
-          # C:\Windows\System32\curl.exe -X POST ` 
-          # "$ssc/upload/resultFileUpload.html?mat=$uploadToken" ` 
-          # -F "entityId=$env:APP_VERSION_ID"
-          # -F "file=@$env:FPR"
+      - name: Fail build on Critical issues in SSC
+        if: always()
+        env:
+          SSC_URL:  http://192.168.64.9:8080/ssc
+          SSC_TOKEN: ${{ secrets.SSC_TOKEN }}
+          APP_VERSION_ID: '17'   # тот же, что вы использовали при upload
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $headers = @{ Authorization = "FortifyToken $env:SSC_TOKEN"; Accept = "application/json" }
+
+          Write-Host "Querying SSC for critical issues for project version id $env:APP_VERSION_ID ..."
+
+          # Попытка использовать фильтр по приоритету (Fortify priority order: critical).
+          # Запрос с limit=1 чтобы получить метаданные / общее число, экономно.
+          $uri = "$env:SSC_URL/api/v1/projectVersions/$env:APP_VERSION_ID/issues?q=[fortify priority order]:critical&limit=1"
+
+          try {
+            $resp = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers -UseBasicParsing -TimeoutSec 30
+          } catch {
+            Write-Error "Не удалось опросить SSC: $($_.Exception.Message)"
+            throw
+          }
+
+          # Попробуем извлечь количество найденных критических issues разными способами,
+          # т.к. структура ответа может отличаться в разных версиях SSC.
+          $criticalCount = 0
+
+          if ($null -ne $resp.paging -and $resp.paging.total -ne $null) {
+            $criticalCount = [int]$resp.paging.total
+          } elseif ($resp.count -ne $null) {
+            $criticalCount = [int]$resp.count
+          } elseif ($resp.data -ne $null -and ($resp.data | Measure-Object).Count -ge 0) {
+            # иногда возвращается объект с data array
+            $criticalCount = [int]($resp.data | Measure-Object).Count
+          } elseif ($resp -is [System.Array]) {
+            $criticalCount = ($resp | Measure-Object).Count
+          } else {
+            # попытка найти поле total или size
+            if ($resp.total -ne $null) { $criticalCount = [int]$resp.total }
+            elseif ($resp.size -ne $null) { $criticalCount = [int]$resp.size }
+          }
+
+          Write-Host "Critical issues found: $criticalCount"
+
+          if ($criticalCount -gt 0) {
+            Write-Host "Found $criticalCount critical issue(s) in SSC — failing the job."
+            # Можно также вывести ссылку на SSC issues page
+            Write-Host "See: $env:SSC_URL/projectVersions/$env:APP_VERSION_ID/issues?q=[fortify%20priority%20order]:critical"
+            exit 1
+          } else {
+            Write-Host "No critical issues found. Build will pass."
+            exit 0
+          }

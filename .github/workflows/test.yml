@@ -18,21 +18,21 @@ jobs:
     environment: SSC_TOKEN
     timeout-minutes: 180
     steps:
-      - name: Wait for app (HTTP 200 on /)
-        shell: powershell
-        run: |
-          $u = "${{ env.TARGET }}"
-          $deadline = (Get-Date).AddMinutes(3)
-          while ((Get-Date) -lt $deadline) {
-            try {
-              Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 $u | Out-Null
-              Write-Host "App is up at $u"; break
-            } catch { Start-Sleep 2 }
-          }
-          if ((Get-Date) -ge $deadline) {
-            Get-Content "$env:RUNNER_TEMP\app.err.log" -Tail 200 -ErrorAction SilentlyContinue
-            throw "Service is not responding at $u"
-          }
+      # - name: Wait for app (HTTP 200 on /)
+      #   shell: powershell
+      #   run: |
+      #     $u = "${{ env.TARGET }}"
+      #     $deadline = (Get-Date).AddMinutes(3)
+      #     while ((Get-Date) -lt $deadline) {
+      #       try {
+      #         Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 $u | Out-Null
+      #         Write-Host "App is up at $u"; break
+      #       } catch { Start-Sleep 2 }
+      #     }
+      #     if ((Get-Date) -ge $deadline) {
+      #       Get-Content "$env:RUNNER_TEMP\app.err.log" -Tail 200 -ErrorAction SilentlyContinue
+      #       throw "Service is not responding at $u"
+      #     }
 
       # (опционально) дополнительная проверка сторонним action
       # - name: HTTP status check

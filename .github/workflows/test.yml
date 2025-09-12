@@ -132,6 +132,6 @@ jobs:
       #     payload: |
       #       {
       #         "text": "🚨 Workflow *${{ github.workflow }}* failed on *${{ github.ref }}*.\nCheck run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-      #       }
+      #       }'
       #   env:
       #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

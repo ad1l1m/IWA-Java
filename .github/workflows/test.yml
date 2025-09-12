@@ -34,7 +34,6 @@ jobs:
             throw "Service is not responding at $u"
           }
 
-      (опционально) дополнительная проверка сторонним action
       - name: HTTP status check
         uses: lakuapik/gh-actions-http-status@v1
         with:

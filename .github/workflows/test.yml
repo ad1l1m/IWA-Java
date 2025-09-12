@@ -63,7 +63,7 @@ jobs:
       
           if (-not $uploadToken) { throw "Не получили uploadToken" }
       
-          # 2) загрузить FPR
+          # 2) загрузить FPR22
           & $env:SystemRoot\System32\curl.exe -sS -X POST `
             "$env:SSC_URL/upload/resultFileUpload.html?mat=$uploadToken" `
             -F "entityId=$env:APP_VERSION_ID" `

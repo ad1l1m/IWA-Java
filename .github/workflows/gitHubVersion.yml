@@ -1,11 +1,106 @@
+name: Create Fortify SSC version for iwa_java_dast (Windows runner)
+
 on:
   release:
-    types:
-      - published
+    types: [published]
 
 jobs:
-  example:
-    runs-on: ubuntu-latest
+  create-ssc-version:
+    runs-on: windows-latest
+
+    env:
+      # если хочешь, можешь положить SSC_URL в secrets и здесь писать ${{ secrets.SSC_URL }}
+      SSC_URL: http://localhost:8888
+      SSC_TOKEN: ${{ secrets.SSC_TOKEN }}
+
     steps:
-      - name: Print release tag name
-        run: echo "Release tag:${{ github.event.release.tag_name }}"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set TAG (use raw tag as-is)
+        # выполняем в PowerShell и записываем в GITHUB_ENV
+        shell: powershell
+        run: |
+          $tag = "${{ github.event.release.tag_name }}"
+          Write-Host "Using release tag: $tag"
+          # сохраняем для следующих шагов
+          Add-Content -Path $env:GITHUB_ENV -Value "TAG=$tag"
+
+      - name: Create project version in SSC (PowerShell)
+        id: create_version
+        shell: powershell
+        run: |
+          try {
+            # берем переменные из окружения
+            $sscUrl = $env:SSC_URL
+            $sscToken = $env:SSC_TOKEN
+            $tag = $env:TAG
+
+            if ([string]::IsNullOrEmpty($sscUrl)) { throw "SSC_URL is empty" }
+            if ([string]::IsNullOrEmpty($sscToken)) { throw "SSC_TOKEN is empty" }
+            if ([string]::IsNullOrEmpty($tag)) { throw "TAG is empty" }
+
+            Write-Host "Creating project version '$tag' for application 'iwa_java_dast' at $sscUrl ..."
+
+            # payload as PowerShell object
+            $payloadObj = @{
+              name = $tag
+              description = "Created from GitHub release $tag"
+              active = $true
+              committed = $false
+              project = @{ name = "iwa_java_dast" }
+            }
+
+            # convert to JSON
+            $payloadJson = $payloadObj | ConvertTo-Json -Depth 6
+
+            Write-Host "Payload:"
+            Write-Host $payloadJson
+
+            # Если у тебя self-signed certs на https и нужно игнорировать — можно временно отключить валидацию сертификатов:
+            # [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
+
+            $headers = @{
+              "Authorization" = "FortifyToken $sscToken"
+              "Accept"        = "application/json"
+            }
+
+            # Выполняем POST. Invoke-RestMethod выбросит исключение при ошибке HTTP (не 2xx)
+            $uri = "$sscUrl/api/v1/projectVersions"
+            $resp = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $payloadJson -ContentType "application/json"
+
+            # ожидаем, что $resp содержит JSON-объект с полем id
+            $versionId = $resp.id
+
+            if ([string]::IsNullOrEmpty($versionId)) {
+              Write-Error "Could not find 'id' in response. Full response:"
+              $resp | ConvertTo-Json -Depth 6 | Write-Host
+              throw "Missing id in SSC response"
+            }
+
+            Write-Host "✅ Created projectVersion id=$versionId"
+
+            # Сохраняем id в GITHUB_ENV чтобы другие шаги могли использовать
+            Add-Content -Path $env:GITHUB_ENV -Value "SSC_VERSION_ID=$versionId"
+
+          } catch {
+            Write-Error "Failed to create SSC project version: $($_.Exception.Message)"
+            # выводим ошибку для отладки
+            if ($_.Exception.Response -ne $null) {
+              try {
+                $stream = $_.Exception.Response.GetResponseStream()
+                $reader = New-Object System.IO.StreamReader($stream)
+                $bodyText = $reader.ReadToEnd()
+                Write-Host "Response body: $bodyText"
+              } catch {
+                # ignore
+              }
+            }
+            throw
+          }
+
+      - name: Result
+        shell: pwsh
+        run: |
+          Write-Host "Tag used: $env:TAG"
+          Write-Host "Created SSC project version id: $env:SSC_VERSION_ID"

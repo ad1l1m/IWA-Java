@@ -1,0 +1,11 @@
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  example:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print release tag name
+        run: echo "Release tag:${{ github.event.release.tag_name }}"

@@ -6,6 +6,7 @@ on:
 env:
   IWA_DIR:  C:\Users\Administrator\IWA-Java
   TARGET:   http://localhost:8888
+  RELEASE: ${{ github.event.release.tag_name }}
 concurrency:
   group: webinspect-winbox  
   cancel-in-progress: true
@@ -15,6 +16,8 @@ jobs:
     runs-on: [self-hosted, windows, x64, webinspect1]
     timeout-minutes: 180
     steps:
+      - name: test_release
+        run: echo example:${{ env.TARGET }}
       - name: localhost
         run: ls
       - name: Free port 8888 if busy1

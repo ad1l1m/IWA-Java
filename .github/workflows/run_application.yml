@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 180
     steps:
       - name: test_release
-        run: echo example:${{ env.RELEASE }}
+        run: echo example:${{ github.ref }}
       - name: localhost
         run: ls
       - name: Free port 8888 if busy1

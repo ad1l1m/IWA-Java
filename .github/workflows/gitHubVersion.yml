@@ -7,7 +7,7 @@ on:
 jobs:
   create-ssc-version:
     runs-on: windows-latest
-
+    environment: SSC_TOKEN
     env:
       # если хочешь, можешь положить SSC_URL в secrets и здесь писать ${{ secrets.SSC_URL }}
       SSC_URL: http://localhost:8888

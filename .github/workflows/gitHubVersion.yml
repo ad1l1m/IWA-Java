@@ -6,7 +6,7 @@ on:
 
 jobs:
   create-ssc-version:
-    runs-on: [self-hosted, windows]
+    runs-on: [self-hosted, windows, x64, webinspect]
     environment: SSC_TOKEN
     env:
       # если хочешь, можешь положить SSC_URL в secrets и здесь писать ${{ secrets.SSC_URL }}

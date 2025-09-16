@@ -2,7 +2,7 @@ name: Create Fortify SSC version for iwa_java_dast (Windows runner)
 # testing2
 on:
   release:
-    types: [published, created, released]
+    types: [published]
 
 jobs:
   create-ssc-version:
@@ -48,10 +48,10 @@ jobs:
               description = "Created from GitHub release $tag"
               active = $true
               committed = $false
-              project = @{ name = "iwa_java_dast", "issueTemplateId":"Prioritized-HighRisk-Project-Template" }
-            },
-            "issueTemplateId":"Prioritized-HighRisk-Project-Template",
-            "committed":true
+              project = @{ name = "iwa_java_dast", "issueTemplateId" = "Prioritized-HighRisk-Project-Template" }
+              "issueTemplateId" = "Prioritized-HighRisk-Project-Template",
+              "committed" = $true
+            }
             
             # convert to JSON
             $payloadJson = $payloadObj | ConvertTo-Json -Depth 6

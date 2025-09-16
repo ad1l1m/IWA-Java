@@ -48,7 +48,10 @@ jobs:
               description = "Created from GitHub release $tag"
               active = $true
               committed = $false
-              project = @{ name = "iwa_java_dast" issueTemplateId = "Prioritized-HighRisk-Project-Template" }
+              project = @{ 
+                name = "iwa_java_dast" 
+                issueTemplateId = "Prioritized-HighRisk-Project-Template" 
+              }
               issueTemplateId = "Prioritized-HighRisk-Project-Template"
               committed = $true
             }

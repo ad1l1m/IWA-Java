@@ -32,15 +32,30 @@ jobs:
           $ssc   = "http://192.168.64.9:8080/ssc"
           $token = "ZDE2MDlhNTYtNzg5Zi00NTc1LTg1MjYtOTRlNDlmNDcwOWY5"
           $tag = "${{ github.event.release.tag_name }}"
-          Write-Host "Current tag: $tag"
+          $tag = ($tag -join "`n").Trim()
+          Write-Host "Current tag: $tag"  
+          git fetch --tags
 
           # получаем теги, отсортированные по версии (v:refname) в убывающем порядке
-          $tags = git tag --sort=-v:refname
+          $tags = @(git tag --sort=-v:refname)
           $prev = $null
-
+          $tags = $tags | ForEach-Object { $_.ToString().Trim() }
+          
           foreach ($t in $tags) {
             if ($t -eq $tag) { break }
             if (-not $prev) { $prev = $t } else { $prev = $prev } # первый элемент до текущего
+          }
+          $idx = [array]::IndexOf($tags, $tag)
+
+          if ($idx -ge 0) {
+              if ($idx + 1 -lt $tags.Count) {
+                  $prev = $tags[$idx + 1]   # список отсортирован от newest -> oldest
+                  Write-Host "Previous tag: $prev"
+              } else {
+                  Write-Host "Текущий тег — самый новый (нет предыдущего)."
+              }
+          } else {
+              Write-Host "Текущий тег '$tag' не найден в списке (проверьте вывод выше)."
           }
 
           # if (-not $prev) {
@@ -66,9 +81,9 @@ jobs:
           } else {
               throw "Version $verName not found"
           }          
-          
+
           # Создания нового версии
-          $currentVersionId = "$prev"
+          $currentVersionId = "$srcId"
           $getCurrentVersion = Invoke-RestMethod -Uri "$ssc/api/v1/projectVersions/$currentVersionId" `
           -Headers @{
               Authorization = "FortifyToken $token"
@@ -94,7 +109,11 @@ jobs:
             -Body $bodyCreateNewVersion
           $createNewVersion
           $getAttributes = Invoke-RestMethod -Uri "$ssc/api/v1/projectVersions/$currentVersionId/attributes" `
-              -Method Get -Headers $headers
+              -Headers @{
+                  Authorization = "FortifyToken $token"
+                  "Content-Type" = "application/json; charset=UTF-8"
+                  Accept         = "application/json"
+              } -Method Get
 
 
       # - name: get previous version

@@ -1,5 +1,5 @@
 name: Create Fortify SSC version for iwa_java_dast (Windows runner)
-
+# testing
 on:
   release:
     types: [published]

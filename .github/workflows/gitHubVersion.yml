@@ -26,86 +26,161 @@ jobs:
           # сохраняем для следующих шагов
           Add-Content -Path $env:GITHUB_ENV -Value "TAG=$tag"
 
-      - name: Create project version in SSC (PowerShell)
-        id: create_version
+      - name: Set PREV_TAG (git - semver sort)
         shell: powershell
         run: |
-          try {
-            # берем переменные из окружения
-            $sscUrl = $env:SSC_URL
-            $sscToken = $env:SSC_TOKEN
-            $tag = $env:TAG
+          $ssc   = "http://192.168.64.9:8080/ssc"
+          $token = "ZDE2MDlhNTYtNzg5Zi00NTc1LTg1MjYtOTRlNDlmNDcwOWY5"
+          $tag = "${{ github.event.release.tag_name }}"
+          Write-Host "Current tag: $tag"
 
-            if ([string]::IsNullOrEmpty($sscUrl)) { throw "SSC_URL is empty" }
-            if ([string]::IsNullOrEmpty($sscToken)) { throw "SSC_TOKEN is empty" }
-            if ([string]::IsNullOrEmpty($tag)) { throw "TAG is empty" }
+          # получаем теги, отсортированные по версии (v:refname) в убывающем порядке
+          $tags = git tag --sort=-v:refname
+          $prev = $null
 
-            Write-Host "Creating project version '$tag' for application 'iwa_java_dast' at $sscUrl ..."
-
-            # payload as PowerShell object
-            $payloadObj = @{
-              name = $tag
-              description = "Created from GitHub release $tag"
-              active = $true
-              committed = $true
-              project = @{ 
-                name = "iwa_java_dast"
-                description = ""
-                issueTemplateId = "Prioritized-HighRisk-Project-Template" 
-              }
-              issueTemplateId = "Prioritized-HighRisk-Project-Template"
-            }
-            
-            # convert to JSON
-            $payloadJson = $payloadObj | ConvertTo-Json -Depth 6
-
-            Write-Host "Payload:"
-            Write-Host $payloadJson
-
-            # Если у тебя self-signed certs на https и нужно игнорировать — можно временно отключить валидацию сертификатов:
-            # [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
-
-            $headers = @{
-              "Authorization" = "FortifyToken ODIxZTQ1NzAtNjg5YS00OTExLThlYWYtYzlmMGE5ZjkyMmIw"
-              "Accept"        = "application/json"
-            }
-
-            # Выполняем POST. Invoke-RestMethod выбросит исключение при ошибке HTTP (не 2xx)
-            $uri = "$sscUrl/api/v1/projectVersions"
-            $resp = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $payloadJson -ContentType "application/json"
-
-            # ожидаем, что $resp содержит JSON-объект с полем id
-            $versionId = $resp.id
-
-            if ([string]::IsNullOrEmpty($versionId)) {
-              Write-Error "Could not find 'id' in response. Full response:"
-              $resp | ConvertTo-Json -Depth 6 | Write-Host
-              throw "Missing id in SSC response"
-            }
-
-            Write-Host "✅ Created projectVersion id=$versionId"
-
-            # Сохраняем id в GITHUB_ENV чтобы другие шаги могли использовать
-            Add-Content -Path $env:GITHUB_ENV -Value "SSC_VERSION_ID=$versionId"
-
-          } catch {
-            Write-Error "Failed to create SSC project version: $($_.Exception.Message)"
-            # выводим ошибку для отладки
-            if ($_.Exception.Response -ne $null) {
-              try {
-                $stream = $_.Exception.Response.GetResponseStream()
-                $reader = New-Object System.IO.StreamReader($stream)
-                $bodyText = $reader.ReadToEnd()
-                Write-Host "Response body: $bodyText"
-              } catch {
-                # ignore
-              }
-            }
-            throw
+          foreach ($t in $tags) {
+            if ($t -eq $tag) { break }
+            if (-not $prev) { $prev = $t } else { $prev = $prev } # первый элемент до текущего
           }
 
-      - name: Result
-        shell: powershell
-        run: |
-          Write-Host "Tag used: $env:TAG"
-          Write-Host "Created SSC project version id: $env:SSC_VERSION_ID"
+          # if (-not $prev) {
+          #   Write-Host "No previous tag found"
+          #   Add-Content -Path $env:GITHUB_ENV -Value "PREV_TAG="
+          # } else {
+          #   Write-Host "Previous tag: $prev"
+          #   Add-Content -Path $env:GITHUB_ENV -Value "PREV_TAG=$prev"
+          # }
+
+          # получения предудыщей версии
+
+          $uri = "$ssc/api/v1/projectVersions?fields=id,name,project.name&start=0&limit=200&q=name:`"$prev`""
+          $hdr = @{ "Authorization" = "FortifyToken $token" "Accept" = "application/json" }
+          $resp = Invoke-RestMethod -Uri $uri -Headers $hdr -Method Get
+
+          if ($resp.data -and $resp.data.Count -ge 1) { $srcId = $resp.data[0].id Write-Host "Found source version id: $srcId" } else { throw "Version $verName not found" }
+          
+          # Создания нового версии
+          $currentVersionId = "$prev"
+          $getCurrentVersion = Invoke-RestMethod -Uri "$ssc/api/v1/projectVersions/$currentVersionId" `
+          -Headers @{
+              Authorization = "FortifyToken $token"
+              Accept        = "application/json"
+          } `
+          -Method Get
+
+          $bodyCreateNewVersion = @{
+              name           = "$tag"
+              description    = ""
+              active         = $true
+              project        = $getCurrentVersion.data.project
+              issueTemplateId = "Prioritized-HighRisk-Project-Template"
+          } | ConvertTo-Json -Depth 10
+
+          $createNewVersion = Invoke-RestMethod -Uri "$ssc/api/v1/projectVersions" `
+          -Headers @{
+              Authorization = "FortifyToken $token"
+              Accept        = "application/json"
+              "Content-Type"= "application/json; charset=UTF-8"
+          } `
+          -Method Post `
+          -Body $bodyCreateNewVersion
+          $createNewVersion
+          $getAttributes = Invoke-RestMethod -Uri "$ssc/api/v1/projectVersions/$currentVersionId/attributes" `
+              -Method Get -Headers $headers
+              
+
+      # - name: get previous version
+      #   shell: powershell
+      #   run: |
+      #     fields=id,name,project.name&start=0&limit=200&q=name:"$prev""
+      #     $hdr = @{ "Authorization" = "FortifyToken $token" "Accept" = "application/json" }
+      #     $resp = Invoke-RestMethod -Uri $uri -Headers $hdr -Method Get          
+
+      # - name: Create project version in SSC (PowerShell)
+      #   id: create_version
+      #   shell: powershell
+      #   run: |
+      #     try {
+      #       # берем переменные из окружения
+      #       $currentVersionId = 17
+      #       $sscUrl = $env:SSC_URL
+      #       $sscToken = $env:SSC_TOKEN
+      #       $tag = $env:TAG
+      #       $uri = "$sscUrl/api/v1/projectVersions"
+            
+      #       if ([string]::IsNullOrEmpty($sscUrl)) { throw "SSC_URL is empty" }
+      #       if ([string]::IsNullOrEmpty($sscToken)) { throw "SSC_TOKEN is empty" }
+      #       if ([string]::IsNullOrEmpty($tag)) { throw "TAG is empty" }
+
+      #       Write-Host "Creating project version '$tag' for application 'iwa_java_dast' at $sscUrl ..."
+
+      #       # payload as PowerShell object
+      #       $payloadObj = @{
+      #         name = $tag
+      #         description = "Created from GitHub release $tag"
+      #         active = $true
+      #         committed = $false
+      #         project = @{ 
+      #           name = "iwa_java_dast" 
+      #           issueTemplateId = "Prioritized-HighRisk-Project-Template" 
+      #         }
+      #         issueTemplateId = "Prioritized-HighRisk-Project-Template"
+      #         committed = $true
+      #       }
+            
+      #       # convert to JSON
+      #       $payloadJson = $payloadObj | ConvertTo-Json -Depth 6
+
+      #       Write-Host "Payload:"
+      #       Write-Host $payloadJson
+
+      #       # Если у тебя self-signed certs на https и нужно игнорировать — можно временно отключить валидацию сертификатов:
+      #       # [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
+
+      #       $headers = @{
+      #         "Authorization" = "FortifyToken ODIxZTQ1NzAtNjg5YS00OTExLThlYWYtYzlmMGE5ZjkyMmIw"
+      #         "Accept"        = "application/json"
+      #       }
+
+      #       # Выполняем POST. Invoke-RestMethod выбросит исключение при ошибке HTTP (не 2xx)
+      #       $uri = "$sscUrl/api/v1/projectVersions"
+      #       $resp = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $payloadJson -ContentType "application/json"
+
+      #       # ожидаем, что $resp содержит JSON-объект с полем id
+      #       $versionId = $resp.id
+            
+      #       $getCurrentVersion = Invoke-RestMethod -Uri/17 $uri -Method Get -Headers $headers 
+      #       $project = $getCurrentVersion.body.object.data.project
+            
+      #       if ([string]::IsNullOrEmpty($versionId)) {
+      #         Write-Error "Could not find 'id' in response. Full response:"
+      #         $resp | ConvertTo-Json -Depth 6 | Write-Host
+      #         throw "Missing id in SSC response"
+      #       }
+
+      #       Write-Host "✅ Created projectVersion id=$versionId"
+
+      #       # Сохраняем id в GITHUB_ENV чтобы другие шаги могли использовать
+      #       Add-Content -Path $env:GITHUB_ENV -Value "SSC_VERSION_ID=$versionId"
+
+      #     } catch {
+      #       Write-Error "Failed to create SSC project version: $($_.Exception.Message)"
+      #       # выводим ошибку для отладки
+      #       if ($_.Exception.Response -ne $null) {
+      #         try {
+      #           $stream = $_.Exception.Response.GetResponseStream()
+      #           $reader = New-Object System.IO.StreamReader($stream)
+      #           $bodyText = $reader.ReadToEnd()
+      #           Write-Host "Response body: $bodyText"
+      #         } catch {
+      #           # ignore
+      #         }
+      #       }
+      #       throw
+      #     }
+
+      # - name: Result
+      #   shell: powershell
+      #   run: |
+      #     Write-Host "Tag used: $env:TAG"
+      #     Write-Host "Created SSC project version id: $env:SSC_VERSION_ID"

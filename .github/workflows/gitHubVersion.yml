@@ -47,13 +47,12 @@ jobs:
               name = $tag
               description = "Created from GitHub release $tag"
               active = $true
-              committed = $false
+              committed = $true
               project = @{ 
                 name = "iwa_java_dast" 
                 issueTemplateId = "Prioritized-HighRisk-Project-Template" 
               }
               issueTemplateId = "Prioritized-HighRisk-Project-Template"
-              committed = $true
             }
             
             # convert to JSON

@@ -54,10 +54,18 @@ jobs:
           # получения предудыщей версии
 
           $uri = "$ssc/api/v1/projectVersions?fields=id,name,project.name&start=0&limit=200&q=name:`"$prev`""
-          $hdr = @{ "Authorization" = "FortifyToken $token" "Accept" = "application/json" }
+          $hdr = @{
+            "Authorization" = "FortifyToken $token"
+            "Accept"        = "application/json"
+          }
           $resp = Invoke-RestMethod -Uri $uri -Headers $hdr -Method Get
 
-          if ($resp.data -and $resp.data.Count -ge 1) { $srcId = $resp.data[0].id Write-Host "Found source version id: $srcId" } else { throw "Version $verName not found" }
+          if ($resp.data -and $resp.data.Count -ge 1) {
+              $srcId = $resp.data[0].id
+              Write-Host "Found source version id: $srcId"
+          } else {
+              throw "Version $verName not found"
+          }          
           
           # Создания нового версии
           $currentVersionId = "$prev"
@@ -77,17 +85,17 @@ jobs:
           } | ConvertTo-Json -Depth 10
 
           $createNewVersion = Invoke-RestMethod -Uri "$ssc/api/v1/projectVersions" `
-          -Headers @{
-              Authorization = "FortifyToken $token"
-              Accept        = "application/json"
-              "Content-Type"= "application/json; charset=UTF-8"
-          } `
-          -Method Post `
-          -Body $bodyCreateNewVersion
+            -Headers @{
+                Authorization = "FortifyToken $token"
+                Accept        = "application/json"
+                "Content-Type"= "application/json; charset=UTF-8"
+            } `
+            -Method Post `
+            -Body $bodyCreateNewVersion
           $createNewVersion
           $getAttributes = Invoke-RestMethod -Uri "$ssc/api/v1/projectVersions/$currentVersionId/attributes" `
               -Method Get -Headers $headers
-              
+
 
       # - name: get previous version
       #   shell: powershell

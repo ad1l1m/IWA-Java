@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: localhost
         run: ls
+      - name: directory path
+        run: pwd
       - name: Free port 8888 if busy1
         shell: powershell
         run: Kill-PortProcess -Port 8888

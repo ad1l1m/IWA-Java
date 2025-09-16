@@ -48,9 +48,11 @@ jobs:
               description = "Created from GitHub release $tag"
               active = $true
               committed = $false
-              project = @{ name = "iwa_java_dast" }
-            }
-
+              project = @{ name = "iwa_java_dast", "issueTemplateId":"Prioritized-HighRisk-Project-Template" }
+            },
+            "issueTemplateId":"Prioritized-HighRisk-Project-Template",
+            "committed":true
+            
             # convert to JSON
             $payloadJson = $payloadObj | ConvertTo-Json -Depth 6
 
@@ -61,7 +63,7 @@ jobs:
             # [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
 
             $headers = @{
-              "Authorization" = "FortifyToken $sscToken"
+              "Authorization" = "FortifyToken ODIxZTQ1NzAtNjg5YS00OTExLThlYWYtYzlmMGE5ZjkyMmIw"
               "Accept"        = "application/json"
             }
 
@@ -100,7 +102,7 @@ jobs:
           }
 
       - name: Result
-        shell: pwsh
+        shell: powershell
         run: |
           Write-Host "Tag used: $env:TAG"
           Write-Host "Created SSC project version id: $env:SSC_VERSION_ID"

@@ -111,9 +111,68 @@ jobs:
           $getAttributes = Invoke-RestMethod -Uri "$ssc/api/v1/projectVersions/$currentVersionId/attributes" `
               -Headers @{
                   Authorization = "FortifyToken $token"
-                  "Content-Type" = "application/json; charset=UTF-8"
-                  Accept         = "application/json"
+                  Accept        = "application/json"
               } -Method Get
+
+          $bodyJson = $getAttributes.data | ConvertTo-Json -Depth 10
+
+          $pasteAttributes = Invoke-RestMethod -Uri "$ssc/api/v1/projectVersions/$newVersionId/attributes" `
+              -Headers @{ Authorization = "FortifyToken $token"; Accept = "application/json" } `
+              -Method Put `
+              -Body $bodyJson `
+              -ContentType "application/json; charset=UTF-8"
+              
+          $getUsers = Invoke-RestMethod -Uri "$ssc/api/v1/projectVersions/$currentVersionId/authEntities" `
+              -Headers @{
+                  Authorization = "FortifyToken $token"
+                  Accept        = "application/json"
+              } -Method Get
+          $bodyJson = $getUsers.data | ConvertTo-Json -Depth 10
+          $pasteUsers = Invoke-RestMethod -Uri "$ssc/api/v1/projectVersions/$newVersionId/authEntities" `
+              -Headers @{
+                  Authorization = "FortifyToken $token"
+                  Accept        = "application/json"
+              } -Method Put `
+              -Body $bodyJson `
+              -ContentType "application/json; charset=UTF-8"
+          
+          $bodyOtherConf = @{
+              copyAnalysisProcessingRules = $true
+              copyBugTrackerConfiguration = $true
+              copyCustomTags              = $true
+              previousProjectVersionId    = $currentVersionId
+              projectVersionId            = $newVersionId
+          } | ConvertTo-Json -Depth 5
+          $copyOtherConfiguration = Invoke-RestMethod -Uri "$ssc/api/v1/projectVersions/action/copyFromPartial" `
+              -Headers @{
+                  Authorization = "FortifyToken $token"
+                  Accept        = "application/json"
+              } -Method Post `
+              -Body $bodyOtherConf `
+              -ContentType "application/json; charset=UTF-8"
+
+          $bodyCommitNewVersion = @{ committed = $true } | ConvertTo-Json
+          $commitNewVersion = Invoke-RestMethod -Uri "$ssc/api/v1/projectVersions/$newVersionId" `
+              -Headers @{
+                  Authorization = "FortifyToken $token"
+                  Accept        = "application/json"
+              } -Method Put `
+              -Body $bodyCommitNewVersion `
+              -ContentType "application/json; charset=UTF-8"
+          
+          $bodyCopyData = @{
+              projectVersionId         = $newVersionId
+              previousProjectVersionId = $currentVersionId
+          } | ConvertTo-Json -Depth 5
+          $copyData = Invoke-RestMethod -Uri "$ssc/api/v1/projectVersions/action/copyCurrentState" `
+              -Headers @{
+                  Authorization = "FortifyToken $token"
+                  Accept        = "application/json"
+              } -Method Post `
+              -Body $bodyCopyData `
+              -ContentType "application/json; charset=UTF-8"
+
+
 
 
       # - name: get previous version

@@ -49,7 +49,8 @@ jobs:
               active = $true
               committed = $true
               project = @{ 
-                name = "iwa_java_dast" 
+                name = "iwa_java_dast"
+                description = ""
                 issueTemplateId = "Prioritized-HighRisk-Project-Template" 
               }
               issueTemplateId = "Prioritized-HighRisk-Project-Template"

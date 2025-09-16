@@ -108,6 +108,7 @@ jobs:
             -Method Post `
             -Body $bodyCreateNewVersion
           $createNewVersion
+          $newVersionId = $createNewVersion.data.id
           $getAttributes = Invoke-RestMethod -Uri "$ssc/api/v1/projectVersions/$currentVersionId/attributes" `
               -Headers @{
                   Authorization = "FortifyToken $token"

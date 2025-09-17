@@ -20,6 +20,7 @@ jobs:
       - name: Wait for app (HTTP 200 on /)
         shell: powershell
         run: |
+          $currentVersionId
           $u = "${{ env.TARGET }}"
           $deadline = (Get-Date).AddMinutes(3)
           while ((Get-Date) -lt $deadline) {

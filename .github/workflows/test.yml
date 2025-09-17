@@ -17,6 +17,11 @@ jobs:
     environment: SSC_TOKEN
     timeout-minutes: 180
     steps:
+      - name: test versions
+        shell: powershell
+        run: | 
+          Write-Host "version using item $currentVersionId"
+          Write-Host "version env file: $env:MY_VAR"
       - name: Wait for app (HTTP 200 on /)
         shell: powershell
         run: |

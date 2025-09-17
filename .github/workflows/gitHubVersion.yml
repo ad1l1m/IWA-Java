@@ -84,6 +84,9 @@ jobs:
 
           # Создания нового версии
           $currentVersionId = "$srcId"
+          echo "currentVersionId=$currentVersionId" >> $env:GITHUB_ENV
+          echo "The variable is: $currentVersionId"
+
           $getCurrentVersion = Invoke-RestMethod -Uri "$ssc/api/v1/projectVersions/$currentVersionId" `
           -Headers @{
               Authorization = "FortifyToken $token"

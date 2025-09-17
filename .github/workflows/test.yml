@@ -17,11 +17,15 @@ jobs:
     environment: SSC_TOKEN
     timeout-minutes: 180
     steps:
-      - name: test versions
+      - name: Get latest Git tag
         shell: powershell
-        run: | 
-          Write-Host "version using item $currentVersionId"
-          Write-Host "version env file: $env:MY_VAR"
+        id: get_tag
+        run: |
+          $tag = git -C $env:IWA_DIR tag --sort=-creatordate | Select-Object -First 1
+          Write-Host "Latest tag: $tag"
+          # записываем в GitHub env
+          Add-Content -Path $env:GITHUB_ENV -Value "LATEST_TAG=$tag"
+          
       - name: Wait for app (HTTP 200 on /)
         shell: powershell
         run: |

@@ -21,10 +21,39 @@ jobs:
         shell: powershell
         id: get_tag
         run: |
-          $tag = git -C $env:IWA_DIR tag --sort=-creatordate | Select-Object -First 1
+          cd C:\Users\Administrator\tags_iwa\IWA-Java
+          
+          $tag = git --sort=-creatordate | Select-Object -First 1
           Write-Host "Latest tag: $tag"
           # записываем в GitHub env
           Add-Content -Path $env:GITHUB_ENV -Value "LATEST_TAG=$tag"
+      - name: Get SSC versionId for latest tag
+        shell: powershell
+        env:
+          SSC_URL: http://192.168.64.9:8080/ssc
+          SSC_TOKEN: ${{ secrets.SSC_TOKEN }}
+          VERSION_NAME: ${{ env.LATEST_TAG }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $token = $env:SSC_TOKEN
+          $verName = $env:VERSION_NAME
+
+          $uri = "$env:SSC_URL/api/v1/projectVersions?fields=id,name,project.name&start=0&limit=200&q=name:`"$verName`""
+          $hdr = @{
+              "Authorization" = "FortifyToken $token"
+              "Accept"        = "application/json"
+          }
+
+          $resp = Invoke-RestMethod -Uri $uri -Headers $hdr -Method Get
+          if ($resp.data -and $resp.data.Count -ge 1) {
+              $versionId = $resp.data[0].id
+              Write-Host "Found versionId: $versionId"
+          } else {
+              throw "Version $verName not found in SSC"
+          }
+
+          # Сохраняем versionId для следующих шагов
+          Add-Content -Path $env:GITHUB_ENV -Value "CURRENT_VERSION_ID=$versionId"
           
       - name: Wait for app (HTTP 200 on /)
         shell: powershell
@@ -58,14 +87,15 @@ jobs:
         env: 
             SSC_URL:  http://192.168.64.9:8080/ssc
             SSC_TOKEN: ${{ secrets.SSC_TOKEN }}   # не храни токен в явном виде
-            APP_VERSION_ID: "$currentVersionId"
+            APP_VERSION_ID: ${{ env.CURRENT_VERSION_ID }}
             FPR: C:\Users\Administrator\all_results\testing.fpr
         shell: powershell
         run: |
+         
           $ErrorActionPreference = 'Stop'
           $headers = @{ Authorization = "FortifyToken $env:SSC_TOKEN"; Accept = "application/json" }
           $body    = '{"fileTokenType":"UPLOAD"}'
-      
+
           # 1) получить file token
           $uploadToken = (Invoke-RestMethod -Method Post `
             -Uri "$env:SSC_URL/api/v1/fileTokens" `
@@ -84,7 +114,7 @@ jobs:
         env:
           SSC_URL:  http://192.168.64.9:8080/ssc
           SSC_TOKEN: ${{ secrets.SSC_TOKEN }}
-          APP_VERSION_ID: "$currentVersionId"  # тот же, что вы использовали при upload
+          APP_VERSION_ID: ${{ env.CURRENT_VERSION_ID }}  # тот же, что вы использовали при upload
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'

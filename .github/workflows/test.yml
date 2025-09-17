@@ -17,14 +17,12 @@ jobs:
     environment: SSC_TOKEN
     timeout-minutes: 180
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
       - name: Get latest Git tag
         shell: powershell
         id: get_tag
         run: |
           cd C:\Users\Administrator\tags_iwa\IWA-Java
-          
+          git fetch --tags
           $tag = git tag --sort=-creatordate | Select-Object -First 1
           Write-Host "Latest tag: $tag"
           # записываем в GitHub env

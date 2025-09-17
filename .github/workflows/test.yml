@@ -23,7 +23,7 @@ jobs:
         run: |
           cd C:\Users\Administrator\tags_iwa\IWA-Java
           
-          $tag = git --sort=-creatordate | Select-Object -First 1
+          $tag = git tag --sort=-creatordate | Select-Object -First 1
           Write-Host "Latest tag: $tag"
           # записываем в GitHub env
           Add-Content -Path $env:GITHUB_ENV -Value "LATEST_TAG=$tag"

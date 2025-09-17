@@ -48,7 +48,7 @@ jobs:
         env: 
             SSC_URL:  http://192.168.64.9:8080/ssc
             SSC_TOKEN: ${{ secrets.SSC_TOKEN }}   # не храни токен в явном виде
-            APP_VERSION_ID: '17'
+            APP_VERSION_ID: "$currentVersionId"
             FPR: C:\Users\Administrator\all_results\testing.fpr
         shell: powershell
         run: |
@@ -74,7 +74,7 @@ jobs:
         env:
           SSC_URL:  http://192.168.64.9:8080/ssc
           SSC_TOKEN: ${{ secrets.SSC_TOKEN }}
-          APP_VERSION_ID: '17'   # тот же, что вы использовали при upload
+          APP_VERSION_ID: "$currentVersionId"  # тот же, что вы использовали при upload
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
